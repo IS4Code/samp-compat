@@ -15,7 +15,7 @@ namespace Impl {
 
 	void UninstallHooks();
 
-	bool IsPlayerCompat(int playerid);
+	unsigned char IsPlayerCompat(int playerid);
 };
 
 #endif

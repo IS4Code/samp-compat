@@ -27,9 +27,10 @@ bool PostInitialized = false;
 
 int iNetVersion;
 int iCompatVersion;
+int iCompatVersion2;
 char szVersion[64] = "Unknown";
 
-bool PlayerCompat[MAX_PLAYERS] = { 0 };
+unsigned char PlayerCompat[MAX_PLAYERS] = { 0 };
 int currentVersion = SAMPVersion::VERSION_UNKNOWN;
 
 extern "C"
@@ -48,6 +49,7 @@ void Initialize()
 		{
 			iNetVersion = 4057;
 			iCompatVersion = 4062;
+			iCompatVersion2 = 32769;
 			strcpy(szVersion, "0.3.7-R2");
 			break;
 		}
@@ -55,6 +57,7 @@ void Initialize()
 		{
 			iNetVersion = 4062;
 			iCompatVersion = 4057;
+			iCompatVersion2 = 4057;
 			strcpy(szVersion, "0.3.DL-R1");
 			break;
 		}

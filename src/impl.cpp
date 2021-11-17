@@ -91,10 +91,9 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 
 	int *ver = (int*)rpcParams->input;
 
-	if (*ver == iCompatVersion)
+	if (*ver == iCompatVersion || *ver == iCompatVersion2)
 	{
-
-		PlayerCompat[playerid] = true;
+		PlayerCompat[playerid] = *ver == iCompatVersion2 ? 2 : 1;
 
 		unsigned char namelen = rpcParams->input[5];
 		unsigned int *resp = (unsigned int*)(rpcParams->input + 6 + namelen);
@@ -113,7 +112,7 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 	}
 	else
 	{
-		PlayerCompat[playerid] = false;
+		PlayerCompat[playerid] = 0;
 		((RPCFunction)Addresses::FUNC_ClientJoin)(rpcParams);
 	}
 
@@ -134,7 +133,8 @@ public:
 			return pfn__RakNet__RPC(ppRakServer, uniqueID, parameters, priority, reliability, orderingChannel, playerId, broadcast, shiftTimestamp);
 		}
 
-		if (PlayerCompat[pfn__RakNet__GetIndexFromPlayerID(ppRakServer, playerId)])
+		auto playerid = pfn__RakNet__GetIndexFromPlayerID(ppRakServer, playerId);
+		if (PlayerCompat[playerid])
 		{
 
 			switch (*uniqueID)
@@ -196,6 +196,8 @@ public:
 				}
 				case RPC_ShowActor:
 				{
+					if (PlayerCompat[playerid] == 2) break;
+
 					RakNet::BitStream bs(parameters->GetData(), parameters->GetNumberOfBytesUsed(), true);
 
 					uint16_t wActorID;
@@ -657,12 +659,12 @@ void Impl::UninstallHooks()
 	}
 }
 
-bool Impl::IsPlayerCompat(int playerid)
+unsigned char Impl::IsPlayerCompat(int playerid)
 {
 	if (playerid < 0 || playerid > MAX_PLAYERS)
 	{
 		logprintf("[ERROR] IsPlayerCompat: bad playerid passed (%d)", playerid);
-		return false;
+		return 0;
 	}
 	else
 	{
