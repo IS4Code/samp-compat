@@ -90,10 +90,10 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 	int playerid = pfn__RakNet__GetIndexFromPlayerID(pRakServer, rpcParams->sender);
 
 	int *ver = (int*)rpcParams->input;
-
+	
 	if (*ver == iCompatVersion || *ver == iCompatVersion2)
 	{
-		PlayerCompat[playerid] = *ver == iCompatVersion2 ? 2 : 1;
+		PlayerCompat[playerid] = *ver == iCompatVersion2 ? 0 : 1;
 
 		unsigned char namelen = rpcParams->input[5];
 		unsigned int *resp = (unsigned int*)(rpcParams->input + 6 + namelen);
@@ -136,7 +136,6 @@ public:
 		auto playerid = pfn__RakNet__GetIndexFromPlayerID(ppRakServer, playerId);
 		if (PlayerCompat[playerid])
 		{
-
 			switch (*uniqueID)
 			{
 				case RPC_SetPlayerSkin:
@@ -196,8 +195,6 @@ public:
 				}
 				case RPC_ShowActor:
 				{
-					if (PlayerCompat[playerid] == 2) break;
-
 					RakNet::BitStream bs(parameters->GetData(), parameters->GetNumberOfBytesUsed(), true);
 
 					uint16_t wActorID;
