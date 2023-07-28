@@ -14,3 +14,8 @@ cell Natives::IsPlayerCompat(AMX* amx, cell* params)
 {
 	return Impl::IsPlayerCompat(params[1]);
 }
+
+cell Natives::SetPlayerUGMPCompat(AMX* amx, cell* params)
+{
+	return Impl::SetPlayerUGMPCompat(params[1]);
+}

@@ -16,6 +16,7 @@ namespace Impl {
 	void UninstallHooks();
 
 	unsigned char IsPlayerCompat(int playerid);
+	unsigned char SetPlayerUGMPCompat(int playerid);
 };
 
 #endif

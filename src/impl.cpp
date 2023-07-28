@@ -56,6 +56,7 @@ constexpr int RPC_SetSpawnInfo = 68;
 constexpr int RPC_ShowActor = 171;
 constexpr int RPC_CreateObject = 44;
 constexpr int RPC_ModelData = 179;
+constexpr int RPC_WorldVehicleAdd = 164;
 
 typedef int (THISCALL *RakNet__GetIndexFromPlayerID_t)(void* ppRakServer, PlayerID playerId);
 RakNet__GetIndexFromPlayerID_t pfn__RakNet__GetIndexFromPlayerID = NULL;
@@ -94,6 +95,7 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 	if (*ver == iCompatVersion || *ver == iCompatVersion2)
 	{
 		PlayerCompat[playerid] = *ver == iCompatVersion2 ? 0 : 1;
+		PlayerUGMP[playerid] = !PlayerCompat[playerid];
 
 		unsigned char namelen = rpcParams->input[5];
 		unsigned int *resp = (unsigned int*)(rpcParams->input + 6 + namelen);
@@ -101,7 +103,6 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 		*resp = *resp ^ *ver ^ iNetVersion;
 		*ver = iNetVersion;
 
-		
 		((RPCFunction)Addresses::FUNC_ClientJoin)(rpcParams);
 
 		if (currentVersion == SAMPVersion::VERSION_03DL_R1)
@@ -113,6 +114,7 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 	else
 	{
 		PlayerCompat[playerid] = 0;
+		PlayerUGMP[playerid] = 0;
 		((RPCFunction)Addresses::FUNC_ClientJoin)(rpcParams);
 	}
 
@@ -331,6 +333,38 @@ public:
 					bs.Write(iSpawnWeaponsAmmo0);
 					bs.Write(iSpawnWeaponsAmmo1);
 					bs.Write(iSpawnWeaponsAmmo2);
+
+					return pfn__RakNet__RPC(ppRakServer, uniqueID, &bs, priority, reliability, orderingChannel, playerId, broadcast, shiftTimestamp);
+				}
+			}
+		}
+
+		if(!PlayerUGMP[playerid])
+		{
+			switch(*uniqueID)
+			{
+				case RPC_WorldVehicleAdd:
+				{
+					RakNet::BitStream bs(parameters->GetData(), parameters->GetNumberOfBytesUsed(), true);
+
+					auto offset = bs.GetWriteOffset();
+
+					uint16_t vehicleId;
+					uint32_t modelId;
+					bs.Read(vehicleId);
+					bs.Read(modelId);
+
+					bs.Reset();
+
+					if(modelId > 611)
+					{
+						modelId = 594;
+					}
+
+					bs.Write(vehicleId);
+					bs.Write(modelId);
+
+					bs.SetWriteOffset(offset);
 
 					return pfn__RakNet__RPC(ppRakServer, uniqueID, &bs, priority, reliability, orderingChannel, playerId, broadcast, shiftTimestamp);
 				}
@@ -666,5 +700,19 @@ unsigned char Impl::IsPlayerCompat(int playerid)
 	else
 	{
 		return PlayerCompat[playerid];
+	}
+}
+
+unsigned char Impl::SetPlayerUGMPCompat(int playerid)
+{
+	if(playerid < 0 || playerid > MAX_PLAYERS)
+	{
+		logprintf("[ERROR] SetPlayerUGMP: bad playerid passed (%d)", playerid);
+		return 0;
+	}
+	else
+	{
+		PlayerUGMP[playerid] = 1;
+		return 1;
 	}
 }

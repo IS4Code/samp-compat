@@ -11,3 +11,6 @@
 
 // Check if player is under compatibility mode
 native IsPlayerCompat(playerid);
+
+// Enable player UGMP-specific features
+native SetPlayerUGMPCompat(playerid);

@@ -30,13 +30,15 @@ int iCompatVersion;
 int iCompatVersion2;
 char szVersion[64] = "Unknown";
 
-unsigned char PlayerCompat[MAX_PLAYERS] = { 0 };
+unsigned char PlayerCompat[MAX_PLAYERS] = {0};
+unsigned char PlayerUGMP[MAX_PLAYERS] = {0};
 int currentVersion = SAMPVersion::VERSION_UNKNOWN;
 
 extern "C"
 {
 	AMX_NATIVE_INFO nativeList[] = {
 	{ "IsPlayerCompat", Natives::IsPlayerCompat},
+	{ "SetPlayerUGMPCompat", Natives::SetPlayerUGMPCompat},
 	{ 0, 0 }
 	};
 }

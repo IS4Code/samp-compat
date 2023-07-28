@@ -15,6 +15,7 @@ Contains all the `PAWN_NATIVE_DECL` for native function declarations.
 
 namespace Natives {
 cell IsPlayerCompat(AMX* amx, cell* params);
+cell SetPlayerUGMPCompat(AMX* amx, cell* params);
 }
 
 #endif

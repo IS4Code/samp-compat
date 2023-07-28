@@ -17,6 +17,7 @@ extern void* pRakServer;
 extern bool Initialized;
 
 extern unsigned char PlayerCompat[MAX_PLAYERS];
+extern unsigned char PlayerUGMP[MAX_PLAYERS];
 extern int currentVersion;
 extern int iNetVersion;
 extern int iCompatVersion;
