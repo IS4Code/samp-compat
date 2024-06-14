@@ -58,6 +58,24 @@ constexpr int RPC_CreateObject = 44;
 constexpr int RPC_ModelData = 179;
 constexpr int RPC_WorldVehicleAdd = 164;
 
+enum PacketEnumeration : unsigned char
+{
+	ID_TIMESTAMP = 40,
+	ID_VEHICLE_SYNC = 200,
+	ID_AIM_SYNC = 203,
+	ID_BULLET_SYNC = 206,
+	ID_PLAYER_SYNC = 207,
+	ID_MARKERS_SYNC,
+	ID_UNOCCUPIED_SYNC = 209,
+	ID_TRAILER_SYNC = 210,
+	ID_PASSENGER_SYNC = 211,
+	ID_SPECTATOR_SYNC = 212,
+	ID_RCON_COMMAND = 201,
+	ID_RCON_RESPONCE,
+	ID_WEAPONS_UPDATE = 204,
+	ID_STATS_UPDATE = 205,
+};
+
 typedef int (THISCALL *RakNet__GetIndexFromPlayerID_t)(void* ppRakServer, PlayerID playerId);
 RakNet__GetIndexFromPlayerID_t pfn__RakNet__GetIndexFromPlayerID = NULL;
 
@@ -124,6 +142,8 @@ void CDECL HOOK_ClientJoin(RPCParameters *rpcParams)
 typedef bool (THISCALL *RakNet__RPC_t)(void* ppRakServer, BYTE* uniqueID, RakNet::BitStream* parameters, PacketPriority priority, PacketReliability reliability, unsigned orderingChannel, PlayerID playerId, bool broadcast, bool shiftTimestamp);
 RakNet__RPC_t pfn__RakNet__RPC = NULL;
 
+typedef bool (THISCALL *RakNet__Send_t)(void* ppRakServer, RakNet::BitStream* parameters, PacketPriority priority, PacketReliability reliability, unsigned orderingChannel, PlayerID playerId, bool broadcast);
+RakNet__Send_t pfn__RakNet__Send = NULL;
 
 class RakHooks
 {
@@ -599,6 +619,74 @@ public:
 		}
 		return pfn__RakNet__RPC(ppRakServer, uniqueID, parameters, priority, reliability, orderingChannel, playerId, broadcast, shiftTimestamp);
 	}
+
+	static bool THISCALL Send(void* ppRakServer, RakNet::BitStream* parameters, PacketPriority priority, PacketReliability reliability, unsigned orderingChannel, PlayerID playerId, bool broadcast)
+	{
+		if(playerId.binaryAddress == UNASSIGNED_PLAYER_ID.binaryAddress)
+		{
+			return pfn__RakNet__Send(ppRakServer, parameters, priority, reliability, orderingChannel, playerId, broadcast);
+		}
+
+		auto playerid = pfn__RakNet__GetIndexFromPlayerID(ppRakServer, playerId);
+
+		BYTE id;
+		WORD aboutplayerid;
+
+		if(PlayerUGMP[playerid])
+		{
+			int size = parameters->GetNumberOfBytesUsed();
+			if(size >= 3)
+			{
+				int readOffset = parameters->GetReadOffset();
+
+				parameters->SetReadOffset(0);
+
+				parameters->Read(id);
+				parameters->Read(aboutplayerid);
+
+				if(id == ID_PLAYER_SYNC)
+				{
+					bool tmpBool;
+					WORD tmpWord;
+					parameters->Read(tmpBool);
+					if(tmpBool)
+					{
+						parameters->Read(tmpWord);
+					}
+					parameters->Read(tmpBool);
+					if(tmpBool)
+					{
+						parameters->Read(tmpWord);
+					}
+
+					WORD keys;
+					parameters->Read(keys);
+					
+					parameters->SetReadOffset(parameters->GetReadOffset() + 156);
+
+					BYTE weapon;
+					parameters->Read(weapon);
+					weapon = weapon & 0x3F;
+
+					RakNet::BitStream weaponsUpdate{};
+					weaponsUpdate.Write((BYTE)213);
+					weaponsUpdate.Write(aboutplayerid);
+					weaponsUpdate.Write((WORD)0);
+					weaponsUpdate.Write((WORD)weapon);
+					/*for(int i = 0; i < 12; i++)
+					{
+						weaponsUpdate.Write((WORD)0);
+					}
+					weaponsUpdate.Write(0x017b00c4);
+					weaponsUpdate.Write(0x0d8a60e8);*/
+					pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
+				}
+
+				parameters->SetReadOffset(readOffset);
+			}
+		}
+		return pfn__RakNet__Send(ppRakServer, parameters, priority, reliability, orderingChannel, playerId, broadcast);
+	}
 };
 
 AMX_NATIVE ORIGINAL_n_SetPlayerVirtualWorld = NULL;
@@ -659,11 +747,14 @@ void Impl::InstallPostHooks()
 {
 	int *pRakServer_VTBL = ((int*)(*(void**)pRakServer));
 
+	pfn__RakNet__Send = (RakNet__Send_t)pRakServer_VTBL[RAKNET_SEND_OFFSET];
 	pfn__RakNet__RPC = (RakNet__RPC_t)pRakServer_VTBL[RAKNET_RPC_OFFSET];
 	pfn__RakNet__GetIndexFromPlayerID = (RakNet__GetIndexFromPlayerID_t)pRakServer_VTBL[RAKNET_GET_INDEX_FROM_PLAYERID_OFFSET];
 
+	Unlock((void*)&pRakServer_VTBL[RAKNET_SEND_OFFSET], 4);
 	Unlock((void*)&pRakServer_VTBL[RAKNET_RPC_OFFSET], 4);
-	
+
+	pRakServer_VTBL[RAKNET_SEND_OFFSET] = reinterpret_cast<int>(RakHooks::Send);
 	switch (currentVersion)
 	{
 		case SAMPVersion::VERSION_037_R2:
