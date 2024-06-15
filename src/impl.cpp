@@ -688,9 +688,24 @@ public:
 
 						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
 					}
+					break;
 					case ID_VEHICLE_SYNC:
 					{
-						parameters->SetReadOffset(parameters->GetReadOffset() + 268);
+						if(size < 232)
+						{
+							break;
+						}
+
+						parameters->SetReadOffset(parameters->GetReadOffset() + 212);
+
+						DWORD magnitude;
+						parameters->Read(magnitude);
+
+						if(magnitude)
+						{
+							parameters->SetReadOffset(parameters->GetReadOffset() + 48);
+						}
+						parameters->SetReadOffset(parameters->GetReadOffset() + 24);
 
 						if(parameters->GetNumberOfBitsUsed() < parameters->GetReadOffset() + 8)
 						{
@@ -699,6 +714,7 @@ public:
 
 						BYTE weapon;
 						parameters->Read(weapon);
+						weapon = weapon & 0x3F;
 
 						RakNet::BitStream weaponsUpdate{};
 						weaponsUpdate.Write((BYTE)214);
@@ -708,6 +724,7 @@ public:
 
 						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
 					}
+					break;
 					case ID_PASSENGER_SYNC:
 					{
 						parameters->SetReadOffset(parameters->GetReadOffset() + 24);
@@ -729,10 +746,12 @@ public:
 
 						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
 					}
+					break;
 					case ID_BULLET_SYNC:
 					{
 						parameters->Write((BYTE)0);
 					}
+					break;
 				}
 
 				parameters->SetReadOffset(readOffset);
