@@ -634,8 +634,8 @@ public:
 
 		if(PlayerUGMP[playerid])
 		{
-			int size = parameters->GetNumberOfBytesUsed();
-			if(size >= 3)
+			int size = parameters->GetNumberOfBitsUsed() - 24;
+			if(size >= 0)
 			{
 				int readOffset = parameters->GetReadOffset();
 
@@ -644,42 +644,95 @@ public:
 				parameters->Read(id);
 				parameters->Read(aboutplayerid);
 
-				if(id == ID_PLAYER_SYNC)
+				switch(id)
 				{
-					bool tmpBool;
-					WORD tmpWord;
-					parameters->Read(tmpBool);
-					if(tmpBool)
+					case ID_PLAYER_SYNC:
 					{
-						parameters->Read(tmpWord);
-					}
-					parameters->Read(tmpBool);
-					if(tmpBool)
-					{
-						parameters->Read(tmpWord);
-					}
+						if(size < 50)
+						{
+							break;
+						}
 
-					WORD keys;
-					parameters->Read(keys);
-					
-					parameters->SetReadOffset(parameters->GetReadOffset() + 156);
+						bool tmpBool;
+						WORD tmpWord;
+						parameters->Read(tmpBool);
+						if(tmpBool)
+						{
+							parameters->Read(tmpWord);
+						}
+						parameters->Read(tmpBool);
+						if(tmpBool)
+						{
+							parameters->Read(tmpWord);
+						}
 
-					BYTE weapon;
-					parameters->Read(weapon);
-					weapon = weapon & 0x3F;
+						WORD keys;
+						parameters->Read(keys);
 
-					RakNet::BitStream weaponsUpdate{};
-					weaponsUpdate.Write((BYTE)213);
-					weaponsUpdate.Write(aboutplayerid);
-					weaponsUpdate.Write((WORD)0);
-					weaponsUpdate.Write((WORD)weapon);
-					/*for(int i = 0; i < 12; i++)
-					{
+						parameters->SetReadOffset(parameters->GetReadOffset() + 156);
+
+						if(parameters->GetNumberOfBitsUsed() < parameters->GetReadOffset() + 8)
+						{
+							break;
+						}
+
+						BYTE weapon;
+						parameters->Read(weapon);
+						weapon = weapon & 0x3F;
+
+						RakNet::BitStream weaponsUpdate{};
+						weaponsUpdate.Write((BYTE)213);
+						weaponsUpdate.Write(aboutplayerid);
 						weaponsUpdate.Write((WORD)0);
+						weaponsUpdate.Write((WORD)weapon);
+
+						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
 					}
-					weaponsUpdate.Write(0x017b00c4);
-					weaponsUpdate.Write(0x0d8a60e8);*/
-					pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
+					case ID_VEHICLE_SYNC:
+					{
+						parameters->SetReadOffset(parameters->GetReadOffset() + 268);
+
+						if(parameters->GetNumberOfBitsUsed() < parameters->GetReadOffset() + 8)
+						{
+							break;
+						}
+
+						BYTE weapon;
+						parameters->Read(weapon);
+
+						RakNet::BitStream weaponsUpdate{};
+						weaponsUpdate.Write((BYTE)214);
+						weaponsUpdate.Write(aboutplayerid);
+						weaponsUpdate.Write((WORD)0);
+						weaponsUpdate.Write((WORD)weapon);
+
+						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
+					}
+					case ID_PASSENGER_SYNC:
+					{
+						parameters->SetReadOffset(parameters->GetReadOffset() + 24);
+
+						if(parameters->GetNumberOfBitsUsed() < parameters->GetReadOffset() + 8)
+						{
+							break;
+						}
+
+						BYTE weapon;
+						parameters->Read(weapon);
+						weapon = weapon & 0x3F;
+
+						RakNet::BitStream weaponsUpdate{};
+						weaponsUpdate.Write((BYTE)215);
+						weaponsUpdate.Write(aboutplayerid);
+						weaponsUpdate.Write((WORD)0);
+						weaponsUpdate.Write((WORD)weapon);
+
+						pfn__RakNet__Send(ppRakServer, &weaponsUpdate, priority, reliability, orderingChannel, playerId, broadcast);
+					}
+					case ID_BULLET_SYNC:
+					{
+						parameters->Write((BYTE)0);
+					}
 				}
 
 				parameters->SetReadOffset(readOffset);
